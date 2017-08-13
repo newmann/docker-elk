@@ -4,15 +4,41 @@ services:
 
   elasticsearch:
     build: elasticsearch/
+    container_name: elasticsearch
     volumes:
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      #- ./elasticsearch/config/analysis-ansj:/usr/share/elasticsearch/config/analysis-ansj
+      - ./elasticsearch/serverdata:/usr/share/elasticsearch/data
     ports:
       - "9200:9200"
       - "9300:9300"
     environment:
-      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ES_JAVA_OPTS: "-Xmx512m -Xms512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 1g      
     networks:
       - elk
+  n1:
+    build: elasticsearch/
+    container_name: n1
+    volumes:
+      - ./elasticsearch/config/n1.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      #- ./elasticsearch/config/analysis-ansj:/usr/share/elasticsearch/config/analysis-ansj
+      - ./elasticsearch/n1data:/usr/share/elasticsearch/data
+    environment:
+      ES_JAVA_OPTS: "-Xmx512m -Xms512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 1g      
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
 
   logstash:
     build: logstash/
@@ -21,12 +47,14 @@ services:
       - ./logstash/pipeline:/usr/share/logstash/pipeline
     ports:
       - "5000:5000"
+      - "5044:5044"
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     networks:
       - elk
     depends_on:
-      - elasticsearch
+      - n1
+      #- elasticsearch
 
   kibana:
     build: kibana/
@@ -37,7 +65,8 @@ services:
     networks:
       - elk
     depends_on:
-      - elasticsearch
+      - n1
+      #- elasticsearch
 
 networks:
 
